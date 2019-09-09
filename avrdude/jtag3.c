@@ -105,6 +105,7 @@ static int jtag3_paged_write(PROGRAMMER * pgm, AVRPART * p, AVRMEM * m,
                                 unsigned int addr, unsigned int n_bytes);
 static unsigned char jtag3_memtype(PROGRAMMER * pgm, AVRPART * p, unsigned long addr);
 static unsigned int jtag3_memaddr(PROGRAMMER * pgm, AVRPART * p, AVRMEM * m, unsigned long addr);
+static int jtag3_is_xplainedmini_updi(PROGRAMMER * pgm);
 
 
 void jtag3_setup(PROGRAMMER * pgm)
@@ -867,7 +868,7 @@ int jtag3_getsync(PROGRAMMER * pgm, int mode) {
   /* XplainedMini boards do not need this, and early revisions had a
    * firmware bug where they complained about it. */
   if (pgm->flag & PGM_FL_IS_EDBG) {
-    if (strcmp(pgm->id, "xplainedmini_updi") != 0) {
+    if (!jtag3_is_xplainedmini_updi(pgm)) {
       if (jtag3_edbg_prepare(pgm) < 0) {
         return -1;
       }
@@ -1581,7 +1582,7 @@ void jtag3_close(PROGRAMMER * pgm)
   /* XplainedMini boards do not need this, and early revisions had a
    * firmware bug where they complained about it. */
   if (pgm->flag & PGM_FL_IS_EDBG) {
-    if (strcmp(pgm->id, "xplainedmini_updi") != 0) {
+    if (!jtag3_is_xplainedmini_updi(pgm)) {
       jtag3_edbg_signoff(pgm);
     }
   }
@@ -2497,3 +2498,14 @@ void jtag3_updi_initpgm(PROGRAMMER * pgm)
   pgm->read_sib       = jtag3_read_sib;
 }
 
+static int jtag3_is_xplainedmini_updi(PROGRAMMER * pgm)
+{
+  LNODEID ln;
+  const char * id;
+  for (ln=lfirst(pgm->id); ln; ln=lnext(ln)) {
+    id = ldata(ln);
+    if (strcmp(id, "xplainedmini_updi") == 0)
+      return 1;
+  }
+  return 0;
+}
